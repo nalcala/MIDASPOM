@@ -5,19 +5,19 @@
 
 #### run MIDASPOM ####
 # Example parameter estimation in a linear habitat with 100m segments and mean dispersal of 400m
-bin/MIDASPOM.out -m 400 -d 100 -i examples/input/occupancies.txt -o examples/output/posterior.txt
+bin_linux/MIDASPOM.out -m 400 -d 100 -i examples/input/occupancies.txt -o examples/output/posterior.txt
 
 # Example parameter estimation under in situ die-off hypothesis, for surveys starting 10 years after the disturbance event
-bin/MIDASPOM_dieoff.out -a 10 -e 0.71 -c 0.52 -m 400 -d 100 -s 151 -i examples/input/occupancies.txt -o examples/output/lh_dieoff.txt
+bin_linux/MIDASPOM_dieoff.out -a 10 -e 0.71 -c 0.52 -m 400 -d 100 -s 151 -i examples/input/occupancies.txt -o examples/output/lh_dieoff.txt
 
 # Example parameter estimation under habitat loss hypothesis, for surveys starting 10 years after the disturbance event
-bin/MIDASPOM_loss.out -a 10 -e 0.71 -c 0.52 -m 400 -d 100 -s 151 -i examples/input/occupancies.txt -o examples/output/lh_loss.txt
+bin_linux/MIDASPOM_loss.out -a 10 -e 0.71 -c 0.52 -m 400 -d 100 -s 151 -i examples/input/occupancies.txt -o examples/output/lh_loss.txt
 
 # Example prediction of future probability of extinction without management
-bin/MIDASPOM_future.out -a 50 -m 400 -d 100 -i examples/input/occupancies.txt -q examples/output/posterior.txt -o examples/output/pext_future_nomanagement.txt 
+bin_linux/MIDASPOM_future.out -a 50 -m 400 -d 100 -i examples/input/occupancies.txt -q examples/output/posterior.txt -o examples/output/pext_future_nomanagement.txt 
 
 # Example prediction of future probability of extinction with an additional source population of size 1 at distance 500m
-bin/MIDASPOM_future.out -a 50 -m 400 -d 100 -i examples/input/occupancies.txt -q examples/output/posterior.txt -o examples/output/pext_future_source.txt -S 1 -s 500
+bin_linux/MIDASPOM_future.out -a 50 -m 400 -d 100 -i examples/input/occupancies.txt -q examples/output/posterior.txt -o examples/output/pext_future_source.txt -S 1 -s 500
 
 
 ####  R scripts ####
