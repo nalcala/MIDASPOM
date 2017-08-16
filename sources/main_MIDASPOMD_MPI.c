@@ -116,19 +116,23 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   float prioroc = 0.5; // prior occupancy for missing data the first year
   char* fname = "input.txt";
   char* fout  = "posterior.txt";
-  char* Jname  = "J.txt";
-  double d = 100;
-  unsigned int nstep = 101;
-  double a = 1.0/400; //dispersal distance
-  double ecmin = 0.0;
-  double ecmax = 1.0;
-  double p     = 1; //proba of observation given presence
-  double C     = 100000;//scaling constant
+  char* Jname = "J.txt";
+  double d    = 100;
+  double win  = 0.01;
+  unsigned int nstepe = 101;
+  unsigned int nstepc = 101;
+  double a    = 1.0/400; //dispersal distance
+  double emin = 0.0;
+  double emax = 1.0;
+  double cmin = 0.0;
+  double cmax = 1.0;
+  double p    = 1; //proba of observation given presence
+  double C    = 100000;//scaling constant
   
   int c;
   
   opterr = 0;
-  while ((c = getopt (argc, argv, "m:p:d:i:J:o:s:l:u:f:")) != -1)
+  while ((c = getopt (argc, argv, "m:p:d:i:J:o:s:l:h:u:v:f:")) != -1)
     switch (c)
       {
       case 'm':
@@ -150,13 +154,19 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
         fout = optarg;
         break;
       case 's':
-        nstep = atoi(optarg);
+        win = atof(optarg);
 	break;
       case 'l':
-        ecmin = atof(optarg);
+        emin = atof(optarg);
+        break;
+      case 'h':
+        cmin = atof(optarg);
         break;
       case 'u':
-        ecmax = atof(optarg);
+        emax = atof(optarg);
+        break;
+      case 'v':
+        cmax = atof(optarg);
         break;
       case 'f':
         p = atof(optarg);
@@ -175,9 +185,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
         abort ();
       }
 
-  double win = (ecmax-ecmin)/(nstep-1);
+  nstepe = (unsigned int) ((emax-emin)/win + 1);
+  nstepc = (unsigned int) ((cmax-cmin)/win + 1);
 
-  if(my_id == root_process) printf("Parameters for numerical approximation of the posterior density:\n\tWindow size=%lf, number of steps=%d\n",win,nstep );
+  if(my_id == root_process) printf("Parameters for numerical approximation of the posterior density:\n\tWindow size=%lf, number of steps=%dx%d\n",win,nstepe,nstepc );
  
   //records the time of execution
   time_t start,end;         //beginning and ending times
@@ -252,7 +263,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 
   unsigned int nstates = pow(2,nvar); //number of possible states
   
-  avg_rows_per_process = nstep/num_procs;
+  avg_rows_per_process = nstepe/num_procs;
   double **M = malloc(n*sizeof(double*));
   for(i = 0; i < n; i++) M[i] = malloc(n*sizeof(double));
   
@@ -396,18 +407,20 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   
      
   //create input tables
-  double cllik[nstep];
-  double ellik[nstep];
-  for(i=0;i<nstep-1;i++){
-    ellik[i] = ((double)i)*win + ecmin; 
-    cllik[i] = ((double)i)*win + ecmin; 
+  double ellik[nstepe];
+  double cllik[nstepc];
+  for(i=0;i<nstepe-1;i++){
+    ellik[i] = ((double)i)*win + emin;
   }
-  ellik[nstep-1] = ecmax;
-  cllik[nstep-1] = ecmax;
+  for(i=0;i<nstepc-1;i++){
+    cllik[i] = ((double)i)*win + cmin; 
+  }
+  ellik[nstepe-1] = emax;
+  cllik[nstepc-1] = cmax;
   //create output tables
-  double Lik[nstep][nstep];
-  for(i=0;i<nstep;i++){
-    for(j=0;j<nstep;j++){
+  double Lik[nstepe][nstepc];
+  for(i=0;i<nstepe;i++){
+    for(j=0;j<nstepc;j++){
       Lik[i][j] = 0;
     }
   }
@@ -425,10 +438,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   unsigned int stloop,endloop;
   if(my_id==root_process){
     stloop  = 0; 
-    endloop = avg_rows_per_process + nstep%num_procs;
+    endloop = avg_rows_per_process + nstepe%num_procs;
   }else{
-    stloop  = my_id*avg_rows_per_process + nstep%num_procs;
-    endloop = (my_id+1)*avg_rows_per_process + nstep%num_procs;
+    stloop  = my_id*avg_rows_per_process + nstepe%num_procs;
+    endloop = (my_id+1)*avg_rows_per_process + nstepe%num_procs;
   }
   double *P  = malloc(nstates*nstates*sizeof(double));
   double *D  = malloc(nstates*tmax*sizeof(double)); 
@@ -436,7 +449,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 
   for(ie=stloop; ie<endloop; ie++){
     etmp = ellik[ie];
-    for(ic=0; ic<nstep; ic++){
+    for(ic=0; ic<nstepc; ic++){
       //printf("%d %d\n",ie,ic);
       ctmp = cllik[ic];
 
@@ -594,24 +607,24 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   //start sending data
   if(my_id!=root_process){
     printf("Sending data (proc %d)... ",my_id);
-    double MSGsend[2+avg_rows_per_process*nstep];
-    MSGsend[0] = my_id*avg_rows_per_process + nstep%num_procs ;
-    MSGsend[1] = (my_id+1)*avg_rows_per_process + nstep%num_procs ;
+    double MSGsend[2+avg_rows_per_process*nstepc];
+    MSGsend[0] = my_id*avg_rows_per_process + nstepe%num_procs ;
+    MSGsend[1] = (my_id+1)*avg_rows_per_process + nstepe%num_procs ;
     for(k=MSGsend[0],j=0; k<MSGsend[1]; k++,j++){
-      for(l=0; l<nstep; l++){
-	MSGsend[2 + j*nstep + l] = Lik[k][l];
+      for(l=0; l<nstepc; l++){
+	MSGsend[2 + j*nstepc + l] = Lik[k][l];
       }
     }
-    ierr = MPI_Send(MSGsend, 2+avg_rows_per_process*nstep, MPI_DOUBLE, root_process, return_data_tag, MPI_COMM_WORLD); 
+    ierr = MPI_Send(MSGsend, 2+avg_rows_per_process*nstepc, MPI_DOUBLE, root_process, return_data_tag, MPI_COMM_WORLD); 
     printf("done\n");
   }else{
     printf("Gathering data from %d proc... ",num_procs-1);
     for(an_id = 1; an_id < num_procs; an_id++) {//for each proc
-      double MSGrec[2+avg_rows_per_process*nstep];
-      ierr = MPI_Recv(MSGrec, 2+avg_rows_per_process*nstep, MPI_DOUBLE, MPI_ANY_SOURCE, return_data_tag, MPI_COMM_WORLD, &status); //receive data
+      double MSGrec[2+avg_rows_per_process*nstepc];
+      ierr = MPI_Recv(MSGrec, 2+avg_rows_per_process*nstepc, MPI_DOUBLE, MPI_ANY_SOURCE, return_data_tag, MPI_COMM_WORLD, &status); //receive data
       for(k=MSGrec[0],j=0; k<MSGrec[1]; k++,j++){
-	for(l=0; l<nstep; l++){
-	  Lik[k][l] = MSGrec[2 + j*nstep + l]; //store data
+	for(l=0; l<nstepc; l++){
+	  Lik[k][l] = MSGrec[2 + j*nstepc + l]; //store data
 	}
       }
     }
@@ -620,11 +633,11 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     //total Likelihood
     double Ltot=0;
     double coef;
-    for(k=0; k<nstep; k++){
-      for(l=0; l<nstep; l++){
+    for(k=0; k<nstepe; k++){
+      for(l=0; l<nstepc; l++){
 	coef = 1;
-	if( (k==0)|(k==(nstep-1))) coef *= 0.5;
-	if( (l==0)|(l==(nstep-1))) coef *= 0.5;
+	if( (k==0)|(k==(nstepe-1))) coef *= 0.5;
+	if( (l==0)|(l==(nstepc-1))) coef *= 0.5;
 	Ltot += exp(Lik[k][l])*coef;
       }
     }
@@ -634,8 +647,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     FILE * fe;
     printf("Writing output in file %s... ",fout);
     fe=fopen(fout,"wb");  
-    for(i=0; i<nstep; i++){
-      for(j=0; j<nstep; j++){
+    for(i=0; i<nstepe; i++){
+      for(j=0; j<nstepc; j++){
 	if(Ltot==0) fprintf(fe,"%.20lf\t", Lik[i][j] );
 	else fprintf(fe,"%.20lf\t", Lik[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
       }
