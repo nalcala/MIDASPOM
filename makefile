@@ -2,10 +2,19 @@ MPICC = mpicc
 CC = gcc
 CCFLAGS = -Wall -lcblas -latlas -lm -O3
 
-all: MIDASPOMD_MPI MIDASPOM_loss_MPI MIDASPOMD_dieoff_MPI MIDASPOM_future_MPI MIDASPOM MIDASPOM_dieoff MIDASPOM_loss MIDASPOM_future MIDASPOMD_impute_MPI
+all: MIDASPOMD_MPI MIDASPOMDs_MPI MIDASPOMDs2_MPI MIDASPOMf_MPI MIDASPOM_loss_MPI MIDASPOMD_dieoff_MPI MIDASPOM_future_MPI MIDASPOM MIDASPOM_dieoff MIDASPOM_loss MIDASPOM_future MIDASPOMD_impute_MPI 
 
 MIDASPOMD_MPI: sources/main_MIDASPOMD_MPI.c
 	$(MPICC) -o bin_linux/MIDASPOMD_MPI.out sources/main_MIDASPOMD_MPI.c $(CCFLAGS)
+
+MIDASPOMDs_MPI: sources/main_MIDASPOMDs_MPI.c
+	$(MPICC) -o bin_linux/MIDASPOMDs_MPI.out sources/main_MIDASPOMDs_MPI.c $(CCFLAGS)
+
+MIDASPOMDs2_MPI: sources/main_MIDASPOMDs2_MPI.c
+	$(MPICC) -o bin_linux/MIDASPOMDs2_MPI.out sources/main_MIDASPOMDs2_MPI.c $(CCFLAGS)
+
+MIDASPOMf_MPI: sources/main_MIDASPOMf_MPI.c
+	$(MPICC) -o bin_linux/MIDASPOMf_MPI.out sources/main_MIDASPOMf_MPI.c $(CCFLAGS)
 
 MIDASPOMD_dieoff_MPI: sources/main_MIDASPOMD_dieoff_MPI.c
 	$(MPICC) -o bin_linux/MIDASPOMD_dieoff_MPI.out sources/main_MIDASPOMD_dieoff_MPI.c $(CCFLAGS)
