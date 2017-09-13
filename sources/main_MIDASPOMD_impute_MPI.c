@@ -603,7 +603,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     for(i=0; i<tmax; i++){
       for(j=0; j<n+1; j++){
 	//if(Ltot==0) fprintf(fe,"%.20lf\t", Lik[i][j] );
-	fprintf(fe,"%.5lf\t", Likoc[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
+	fprintf(fe,"%.5lf", Likoc[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
+	if(j<n) fprintf(fe,"\t");
       }
       fprintf(fe,"\n");
     }
@@ -614,7 +615,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     for(i=0; i<tmax; i++){
       for(j=0; j<n; j++){
 	//if(Ltot==0) fprintf(fe,"%.20lf\t", Lik[i][j] );
-	fprintf(fe,"%.5lf\t", Lik[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
+	fprintf(fe,"%.5lf", Lik[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
+	if(j<(n-1)) fprintf(fe,"\t");
       }
       fprintf(fe,"\n");
     }
