@@ -222,8 +222,9 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   }
   fclose(fo);
   int nstates = pow(2,n); //number of possible states
+  printf("tmax = %d\n",tmax);
   
-  int* pend = (int *) malloc(n*sizeof(int));
+  double* pendp = (double *) malloc(n*sizeof(double));
     
   fo = fopen(fname,"rb");   //
   int out;
@@ -231,8 +232,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   for(j=0; j<n; j++) var[j]=0;
   for(i=0; i<tmax; i++){
     for(j=0; j<n; j++){
-      out = fscanf(fo,"%d",&(pend[j]));
-      if(pend[j]!=0){
+      out = fscanf(fo,"%lf",&(pendp[j]));
+      if(pendp[j]!=0){
 	var[j]=1;
       }
     }
@@ -243,7 +244,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   if(my_id == root_process){
     printf("Last occupancy survey:\n");
     for(j=0; j<n; j++){
-      printf("%d ",pend[j]);
+      printf("%lf ",pendp[j]);
     }
     printf("\n");
   }
@@ -257,21 +258,26 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   FILE * fi2;
   if(my_id == root_process) printf("Reading posterior distribution from file %s... ",finame);
   fi2 = fopen(finame,"rb");   //
-  int necstep = 0;
+  int nestep = 0;
+  int ncstep = 1;
+
   while ( (c=fgetc(fi2)) != EOF ) {
     if ( c == '\n' )
-      break;
-    if( (c==' ')|(c=='\t') ) necstep++;
+      nestep++;
+    if(nestep==0){
+      //printf("%c",c);
+      if( (c==' ')|(c=='\t') ) ncstep++;
+    }
   }
   fclose(fi2);
-  if(my_id == root_process) printf("%dX%d posterior distribution\n",necstep,necstep);
+  if(my_id == root_process) printf("%dX%d posterior distribution\n",nestep,ncstep);
   
   //int necstep = 101;
-  double post[necstep][necstep];
+  double post[nestep][ncstep];
   fi2 = fopen(finame,"rb");   //
   double totpost = 0;
-  for(i=0; i<necstep; i++){
-    for(j=0; j<necstep; j++){
+  for(i=0; i<nestep; i++){
+    for(j=0; j<ncstep; j++){
       out = fscanf(fi2,"%lf",&(post[i][j]));
       //printf("%lf\t",post[i][j]);
       totpost += post[i][j];
@@ -311,8 +317,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   
   
   for(j=0; j<n; j++){
-    if(pend[j]==1) pmin++;
-    if(pend[j]==-1){
+    if(pendp[j]==1) pmin++;
+    if(pendp[j]==-1){
       s1++; 
     }
   }
@@ -331,10 +337,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 
   s1 = 0;
   for(j=0; j<n; j++){
-    if(pend[j]==-1) s1 ++;
+    if(pendp[j]==-1) s1 ++;
     for(k=0; k<npstates; k++){
-      if(pend[j]>-1){
-	pstates[k][j] = pend[j]; // to change if some sites always at 0
+      if(pendp[j]>-1){
+	pstates[k][j] = pendp[j]; // to change if some sites always at 0
       }else{
 	st1 = npstates/pow(2,s1);
 	pstates[k][j] = (k/st1%2);
@@ -343,7 +349,6 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     }//for state k
   }//for patch j
  
-  free(pend);
 
   if(my_id == root_process){
     printf("Last occupancy survey:\n");
@@ -390,13 +395,13 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   
   for(i=stloop; i<endloop; i++){//nstep; ie++){
     // sample e and c from prior distrib
-    pec = (necstep-1)*(necstep-1)*(double)rand()/(double)(RAND_MAX);//rand()%(necstep*necstep);
+    pec = (nestep-1)*(ncstep-1)*(double)rand()/(double)(RAND_MAX);//rand()%(necstep*necstep);
     double pcum = 0;
-    for(ie=0;ie<necstep;ie++ ){
-      for(ic=0;ic<necstep;ic++ ){
+    for(ie=0;ie<nestep;ie++ ){
+      for(ic=0;ic<ncstep;ic++ ){
 	double w = 1.0;
-	if( (ie==0)||(ie==necstep-1) ) w*= 0.5;
-	if( (ic==0)||(ic==necstep-1) ) w*= 0.5;
+	if( (ie==0)||(ie==nestep-1) ) w*= 0.5;
+	if( (ic==0)||(ic==ncstep-1) ) w*= 0.5;
 	pcum += w*post[ie][ic];
 	if(pec<pcum){
 	  etmp = ie*0.01;
@@ -407,8 +412,17 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     }
   end_nested_loop:
     1;
-    int init = rand()%npstates; //randomly choose an initial state
-    memcpy(&pcur[0], &pstates[init][0], sizeof(int)*n);
+    printf("e=%lf,c=%lf\n",etmp,ctmp);
+    //int init = rand()%npstates; //randomly choose an initial state
+    //memcpy(&pcur[0], &pstates[init][0], sizeof(int)*n);
+    for(j=0;j<n;j++){
+      double pr = (double)rand()/(double)(RAND_MAX);
+      if( pr<=pendp[j]){
+	pcur[j] = 1;
+      }else{
+	pcur[j] = 0;
+      }
+    }
     //printf("end copy\n");
     for(tmp=0;tmp<tfut;tmp++){
       jtmp = simpij(pcur,ptmp, etmp, ctmp, KD,  KS, M, n); 
@@ -463,6 +477,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   
   //free memory
   free(Lik);
+  free(pendp);
   
   return 0;
 }
