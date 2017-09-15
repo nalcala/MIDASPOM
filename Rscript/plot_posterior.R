@@ -22,6 +22,8 @@ cl = seq(l,u,length.out=step)
 jpost = as.matrix(read.table(postfile)) #matrix(scan(postfile),step,step,byrow=T)
 jpost = jpost/sum(jpost)/0.01/0.01
 
+print(jpost)
+
 #point estimates
 ML   = which.max(jpost)
 eest = el[(ML-1)%%step +1]
@@ -38,7 +40,6 @@ qcl = which((cumsum(cpost)>=(0.025/0.01))&(cumsum(cpost)<(0.975/0.01)))
 pmax = max(c(epost,cpost))
 coco = rgb(1,seq(1,0,-0.1),seq(1,0,-0.1),1)
 pdf(outfile,h=1*2.5,w=3*2.5)
-svg("FigS1DC.svg",h=1*2.5,w=3*2.5)
 par(mfrow=c(1,3),family="Times",las=1)
 plot( -1, -1,type="l",xlim=c(l,u),ylim=c(0,8), xlab="extinction parameter",ylab="density",col=2,lwd=3,las=1,main=" ")
 polygon(c(l,l,u,u),c(0,1/(u-l),1/(u-l),0),lwd=2,col=rgb(0,0,0,0.3),border=NA)

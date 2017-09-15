@@ -1,13 +1,12 @@
 ## simulate trajectories ##
 ## simulate trajectories ##
 
-simtraj <- function(e,c,n,pobs,M,A,t=17,nr = 1,miss = -1){
+simtrajobs <- function(e,c,p,n,p0,J,M,A,t = 17,nr = 1){
   pl  = array(0,c(nr,t,n))
-  p0 = pobs[1,]
   for(j in 1:nr){
       pEi = e/A
       ptab     = matrix(0,t,n)
-      ptab[1,] = p0
+      ptab[1,] = rbinom(n,1,p0)
       if(sum(p0==-1)>0) ptab[1,p0==-1] = rbinom(sum(p0==-1),size=1,prob = mean(p0[p0!=-1]))
       pt       = ptab[1,]
       #print(ptab)
@@ -18,13 +17,63 @@ simtraj <- function(e,c,n,pobs,M,A,t=17,nr = 1,miss = -1){
         ptab[i+1,] = pt
         #print(ptab)
       }
-      if(miss==-1) ptab[pobs==-1] = -1
-      if(miss>0) ptab[sample(1:length(ptab) , round(miss*length(ptab)))] = -1
-      #print(ptab)
-      pl[j,,]=ptab
+      print(ptab)
+      
+      pl[j,,] = t(sapply(1:t, function(i) rbinom(n,J[i,],p*ptab[i,]) ))
   }
   return(pl)
 }
+
+# FUNCTION
+set.seed(1)
+simsim <- function(Jt,et,ct,pt,p0t,a= 1/400,nrep=100,tmax=20,suff){
+  nt  = ncol(Jt)
+  
+  dt = sapply(1:nt, function(i){
+    if(i<nt) end = 1:(nt-i)
+    else end = c()
+    c((i-1):0,end) } )*200 # distance matrix in meters
+  At = rep(1,nt) #area of each patch
+  Mmetat = exp(-a*dt)
+  diag(Mmetat)=0
+
+  plt  = simtrajobs(et,ct,pt,nt,p0t,Jt,Mmetat,At,t=tmax,nr = nrep)
+  rest = sapply(1:nrep, function(i) rowMeans(plt[i,,]>0) )
+
+  for(k in 1:nrep) write(t(plt[k,,]),file = paste("Y_",suff,k,".txt",sep=""),ncol=nt)
+}
+
+impMC = read.table("imputeMC_patches.txt")
+impDC = read.table("imputeDC_patches.txt")
+
+simsim(as.matrix(JMC),et=0.11,ct=0.12,pt=0.75,p0t=as.numeric(impMC[1,]),tmax=20,suff="simMC" )
+simsim(as.matrix(JDC),et=0.41,ct=0.50,pt=0.75,p0t=as.numeric(impDC[1,]),tmax=19,suff="simDC" )
+
+#### small test
+Jt  = matrix( rbinom(nt*20,2,0.8) ,20, nt)
+et  = 0.2
+ct  = 0.1
+pt  = 0.75
+nt  = 5
+p0t = c(1,1,1,1,1)
+a   = 1/400
+nrep=100
+
+dt = sapply(1:nt, function(i){
+  if(i<nt) end = 1:(nt-i)
+  else end = c()
+  c((i-1):0,end) } )*200 # distance matrix in meters
+At = rep(1,nt) #area of each patch
+Mmetat = exp(-a*dt)
+diag(Mmetat)=0
+
+plt  = simtrajobs(et,ct,pt,nt,p0t,Jt,Mmetat,At,t = 20,nr = nrep)
+rest = sapply(1:nrep, function(i) rowMeans(plt[i,,]>0) )
+
+for(k in 1:nrep) write(t(plt[k,,]),file = paste("test/Y_e02c01p075_",k,".txt",sep=""),ncol=nt)
+write(t(Jt),file = paste("test/Jt.txt",sep=""),ncol=nt)
+
+
 
 ## MC 
 piobsMC = matrix(scan("SI/run_CRLF/obsMC.txt"),ncol=11,byrow=T)
