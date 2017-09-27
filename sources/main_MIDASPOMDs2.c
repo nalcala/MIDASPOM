@@ -685,6 +685,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 	    //}
 	}
 	printf("SPtmp=%lf\n",log(SPtmp));
+	if(SPtmp==0)  break;
 	//printf("P[%d]=%lf\t", 0,Pold[0] ); //always 1?
 	//printf("bef-endloop-Pold[%d]=%lf\t", 0,log(Pold[0]) ); //always 1?
       }//j
@@ -714,7 +715,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   
   //free memory
   free(priorst);
-  for(j=0;j<nstates;j++) free(piall[j]);
+  for(j=0;j<10*tmax*maxnstates;j++) free(piall[j]);
   free(piall);
   //free(piall2);
   for(i = 0; i < n; i++) free(M[i]);
@@ -727,11 +728,15 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   for(i=0; i<tmax; i++){
     free(J[i]);
     free(Y[i]);
+    free(prmin[i]);
   }
+  for(k=0; k<nstatestmp;k++) free(piall2[k]);
+  free(piall2);
   free(J);
   free(Y);
   free(D);
-
+  free(prmin); 
+  
   //start sending data
   //total Likelihood
   double Ltot=0;
