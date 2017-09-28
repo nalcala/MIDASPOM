@@ -38,7 +38,6 @@ void compPePc(double * Pee, double * Pcc, double * D,  int ** piall, double e, d
   for(i=0;i<nstates;i++){// for all possible states at time point k
     //printf("(comp state %d)\t",i);
     int * piold = piall[i];
-
     double pijc = 0; //1;
     int s1 = 0; //1 -> 0
     int s2 = 0; //1 -> 1
@@ -467,21 +466,23 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     printf("\n");
     }*/
 
-  int** piall2  = malloc(nstatestmp*sizeof(int*));
+  /*int** piall2  = malloc(nstatestmp*sizeof(int*));
   for(k=0; k<nstatestmp;k++){
     piall2[k] = malloc(n*sizeof(int));
-  }
+    }*/
   
   l=0;
   for(j=0;j<10*maxnstates*tmax;j++){
     if(idkeep[j]){
-      piall2[l] = piall[j];
+      if(l!=j) piall[l] = piall[j];
       l++;
     }
   }
   
   //for(j=0;j<tmax*maxnstates;j++) free(piall[j]);
-  piall = piall2;
+  //for(j=0;j<10*tmax*maxnstates;j++) free(piall[j]);
+  //free(piall);
+  //piall = piall2;
   
   //memcpy(&Pold[0], &Ptmp[0], sizeof(double)*nstates);
   
@@ -713,30 +714,6 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     printf("%.2f%% done\n",((float)ie+1-stloop)*100.0/(endloop-stloop));
   }//ie
   
-  //free memory
-  free(priorst);
-  for(j=0;j<10*tmax*maxnstates;j++) free(piall[j]);
-  free(piall);
-  //free(piall2);
-  for(i = 0; i < n; i++) free(M[i]);
-  free(M);
-  free(pCtmp);
-  //free(all2short);
-  //for(j=0;j<tmax;j++) free(simppstates[j]);
-  //free(simppstates);
-  free(P);
-  for(i=0; i<tmax; i++){
-    free(J[i]);
-    free(Y[i]);
-    free(prmin[i]);
-  }
-  for(k=0; k<nstatestmp;k++) free(piall2[k]);
-  free(piall2);
-  free(J);
-  free(Y);
-  free(D);
-  free(prmin); 
-  
   //start sending data
   //total Likelihood
   double Ltot=0;
@@ -766,6 +743,30 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   time (&end);//records ending time
   dif = difftime (end,start);
   printf ("done\n Total running time: %.2lf min\n", dif/60.0 );
+
+  //free memory
+  free(priorst);
+  //for(j=0;j<10*tmax*maxnstates;j++) free(piall[j]);
+  for(i = 0; i < n; i++) free(M[i]);
+  free(M);
+  free(pCtmp);
+  //free(all2short);
+  //for(j=0;j<tmax;j++) free(simppstates[j]);
+  //free(simppstates);
+  free(P);
+  for(i=0; i<tmax; i++){
+    free(J[i]);
+    free(Y[i]);
+    free(prmin[i]);
+  }
+  //for(k=0; k<nstatestmp;k++) free(piall[k]);
+  //for(k=0; k<10*tmax*maxnstates;k++) free(piall[k]);
+  free(piall);
+  free(J);
+  free(Y);
+  free(D);
+  free(prmin); 
+  
   
   return 0;
 }
