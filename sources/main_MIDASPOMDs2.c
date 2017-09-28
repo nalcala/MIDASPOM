@@ -134,6 +134,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   float prioroc = 0.5; // prior occupancy for missing data the first year
   char* Mfname = NULL;
   char* fname = "input.txt";
+  char* fstname = "piall.txt";
   char* fout  = "posterior.txt";
   char* Jname = "J.txt";
   double d    = 100;
@@ -150,11 +151,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   long nstates = 0; //pow(2,nvar); //number of possible states
   long maxnstates = 0; //pow(2,nvar); //number of possible states
   double thres = 0;
+  int readpi = 0;
   
   int c;
   
   opterr = 0;
-  while ((c = getopt (argc, argv, "m:M:p:d:i:J:o:s:l:h:u:v:f:t:n:C:")) != -1)
+  while ((c = getopt (argc, argv, "m:M:p:d:i:J:o:s:l:h:u:v:f:r:t:n:C:")) != -1)
     switch (c)
       {
       case 'm':
@@ -205,6 +207,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
       case 'f':
         p = atof(optarg);
         break;
+      case 'r':
+	readpi = 1;
+	fstname = optarg;
+	break;
       case '?':
         if (optopt == 'c')
           fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -327,173 +333,199 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     }
     printf("\n");
   }
-  
+
   //all possible states
-  int maxnstatestmp = 0;
-  int** piall  = malloc(10*tmax*maxnstates*sizeof(int*));
-  int idpiall[10*tmax*maxnstates];
-  for(k=0; k<10*tmax*maxnstates;k++){
-    piall[k] = malloc(n*sizeof(int));
-    idpiall[k] = 0;
-  }
-  double** prmin = malloc(tmax*sizeof(double*)); //list of maxnstates states with top proba /t value
-  for(i=0;i<tmax;i++){
-    prmin[i] = malloc(maxnstates*sizeof(double));
-    for(j=0;j<maxnstates;j++) prmin[i][j] = -1;
-  }
-  double prtmp; //list of temporary proba /t value
-  int sprtmp[tmax];   //list of current nb of val in prmin /t value
-  for(i=0;i<tmax;i++) sprtmp[i] = 0;
-  int pialltmp[n];
-  nstates=0;
-  for(i=0; i<nstatestot; i++){
-    //printf("i=%d\t",i);
-    int jtmp = 0;
-    for(j=0; j<n;j++){
-      int a = pow(2,n-jtmp-1);
-      pialltmp[j] = i/a%2;
-      jtmp++;
+  int** piall;
+  if(!readpi){
+    int maxnstatestmp = 0;
+    piall  = malloc(10*tmax*maxnstates*sizeof(int*));
+    int idpiall[10*tmax*maxnstates];
+    for(k=0; k<10*tmax*maxnstates;k++){
+      piall[k] = malloc(n*sizeof(int));
+      idpiall[k] = 0;
     }
-    //sprtmp = 0;//ylik(Y,J,0,n,p,piall[i]);
-    //for(k=0;k<n;k++) printf("%d ", pialltmp[k] );
-    for(j=0; j<tmax; j++){
-      //boolean added = false;
-      prtmp = ylik(Y,J,j,n,p,pialltmp)*C; //tmp proba  int ** Y, int ** J, int j,int n,double p, int * pi
-      //printf(", prtmp[%d]=%.20lf\n",j,prtmp);
-      k=0;
-      while(prtmp>=prmin[j][k]){
-	if( (k>0)&&(sprtmp[j]==maxnstates) ){//if full 
-	  prmin[j][k-1] = prmin[j][k]; //move all to the left to make room for new val
-	  for(l=0; l<n;l++) piall[k-1 + j*maxnstates ][l] = piall[k + j*maxnstates ][l];
-	  idpiall[k-1 + j*maxnstates ] = idpiall[k + j*maxnstates ];
-	}
-	if( ((sprtmp[j]<maxnstates)&&(k==sprtmp[j]))||((sprtmp[j]==maxnstates)&&(k==(maxnstates-1))) ){//if not full and reached val or full and reached end
-	  //for(l=0; l<n;l++) piall[k + j*maxnstates ][l] = pialltmp[l];
-	  break;
-	}
-	k++;
-      }//while
-      //printf("k=%d\n",k);
-      if(sprtmp[j]==maxnstates){//full
-	if( (k>0)||(prtmp>=prmin[j][0]) ){
-	  if(prtmp<prmin[j][k]) k--;
+    double** prmin = malloc(tmax*sizeof(double*)); //list of maxnstates states with top proba /t value
+    for(i=0;i<tmax;i++){
+      prmin[i] = malloc(maxnstates*sizeof(double));
+      for(j=0;j<maxnstates;j++) prmin[i][j] = -1;
+    }
+    double prtmp; //list of temporary proba /t value
+    int sprtmp[tmax];   //list of current nb of val in prmin /t value
+    for(i=0;i<tmax;i++) sprtmp[i] = 0;
+    int pialltmp[n];
+    nstates=0;
+    for(i=0; i<nstatestot; i++){
+      //printf("i=%d\t",i);
+      int jtmp = 0;
+      for(j=0; j<n;j++){
+	int a = pow(2,n-jtmp-1);
+	pialltmp[j] = i/a%2;
+	jtmp++;
+      }
+      //sprtmp = 0;//ylik(Y,J,0,n,p,piall[i]);
+      //for(k=0;k<n;k++) printf("%d ", pialltmp[k] );
+      for(j=0; j<tmax; j++){
+	//boolean added = false;
+	prtmp = ylik(Y,J,j,n,p,pialltmp)*C; //tmp proba  int ** Y, int ** J, int j,int n,double p, int * pi
+	//printf(", prtmp[%d]=%.20lf\n",j,prtmp);
+	k=0;
+	while(prtmp>=prmin[j][k]){
+	  if( (k>0)&&(sprtmp[j]==maxnstates) ){//if full 
+	    prmin[j][k-1] = prmin[j][k]; //move all to the left to make room for new val
+	    for(l=0; l<n;l++) piall[k-1 + j*maxnstates ][l] = piall[k + j*maxnstates ][l];
+	    idpiall[k-1 + j*maxnstates ] = idpiall[k + j*maxnstates ];
+	  }
+	  if( ((sprtmp[j]<maxnstates)&&(k==sprtmp[j]))||((sprtmp[j]==maxnstates)&&(k==(maxnstates-1))) ){//if not full and reached val or full and reached end
+	    //for(l=0; l<n;l++) piall[k + j*maxnstates ][l] = pialltmp[l];
+	    break;
+	  }
+	  k++;
+	}//while
+	//printf("k=%d\n",k);
+	if(sprtmp[j]==maxnstates){//full
+	  if( (k>0)||(prtmp>=prmin[j][0]) ){
+	    if(prtmp<prmin[j][k]) k--;
+	    prmin[j][k] = prtmp;
+	    for(l=0; l<n;l++) piall[k + j*maxnstates ][l] = pialltmp[l];
+	    idpiall[k + j*maxnstates ] = i;
+	    //maxnstatestmp++;
+	    //break;
+	  }
+	}else{//not full: take everyone
+	  for(l=sprtmp[j];l>k;l--){//move everything to the right
+	    prmin[j][l] = prmin[j][l-1];
+	    for(m=0; m<n;m++) piall[l + j*maxnstates ][m] = piall[l-1 + j*maxnstates ][m];
+	    idpiall[l + j*maxnstates ] = idpiall[l-1 + j*maxnstates ];
+	  }
 	  prmin[j][k] = prtmp;
 	  for(l=0; l<n;l++) piall[k + j*maxnstates ][l] = pialltmp[l];
 	  idpiall[k + j*maxnstates ] = i;
 	  //maxnstatestmp++;
 	  //break;
 	}
-      }else{//not full: take everyone
-	for(l=sprtmp[j];l>k;l--){//move everything to the right
-	  prmin[j][l] = prmin[j][l-1];
-	  for(m=0; m<n;m++) piall[l + j*maxnstates ][m] = piall[l-1 + j*maxnstates ][m];
-	  idpiall[l + j*maxnstates ] = idpiall[l-1 + j*maxnstates ];
-	}
-	prmin[j][k] = prtmp;
-	for(l=0; l<n;l++) piall[k + j*maxnstates ][l] = pialltmp[l];
-	idpiall[k + j*maxnstates ] = i;
-	//maxnstatestmp++;
-	//break;
-      }
-      if(sprtmp[j]<maxnstates) sprtmp[j]++;
-    }//j   
-  }
-
-  for(j=0; j<tmax; j++){
-    for(l=0;l<maxnstates;l++){
-      printf("pr[%d][%d]=%lf\t",j,l,log(prmin[j][l]) );
-      for(k=0;k<n;k++) printf("%d ", piall[l+j*maxnstates][k] );
+	if(sprtmp[j]<maxnstates) sprtmp[j]++;
+      }//j   
     }
-    printf("\n");
-  }
-  printf("done\n");
-
-  //find duplicate states
- 
-  /*int** pialle  = malloc(9*tmax*maxnstates*sizeof(int*)); //10 extinction/possible state
-  for(k=0; k<maxnstatestmp; k++){
-    pialle[k] = malloc(n*sizeof(int));
-    }*/
-
-
-  /*for(k=0; k<2*tmax*maxnstates;k++){
-    printf("k=%d/%d\t",k,2*tmax*maxnstates);
-    piall2[k] = malloc(n*sizeof(int));
-    }*/
-
-  printf("start\n");
-  double pp;
-  for(k=1;k<10;k++){
-    printf("k=%d\t",k);
-    for(i=0;i<tmax;i++){
-      for(j=0;j<maxnstates;j++){
-	idpiall[j + i*maxnstates + k*tmax*maxnstates] = 0;
-	for(l=0;l<n;l++){
-	  if(piall[j + i*maxnstates][l]==1){
-	    pp = (double)rand()/(double)(RAND_MAX);
-	    if(pp>(0.1*k)){
-	      piall[j + i*maxnstates + k*tmax*maxnstates][l] = 1;
-	      idpiall[j + i*maxnstates + k*tmax*maxnstates] += pow(2,n-l-1);
+    
+    for(j=0; j<tmax; j++){
+      for(l=0;l<maxnstates;l++){
+	printf("pr[%d][%d]=%lf\t",j,l,log(prmin[j][l]) );
+	for(k=0;k<n;k++) printf("%d ", piall[l+j*maxnstates][k] );
+      }
+      printf("\n");
+    }
+    printf("done\n");
+    for(k=1;k<tmax;k++) free(prmin[k]);
+    free(prmin); 
+    
+    //find duplicate states
+    
+    printf("start\n");
+    double pp;
+    for(k=1;k<10;k++){
+      printf("k=%d\t",k);
+      for(i=0;i<tmax;i++){
+	for(j=0;j<maxnstates;j++){
+	  idpiall[j + i*maxnstates + k*tmax*maxnstates] = 0;
+	  for(l=0;l<n;l++){
+	    if(piall[j + i*maxnstates][l]==1){
+	      pp = (double)rand()/(double)(RAND_MAX);
+	      if(pp>(0.1*k)){
+		piall[j + i*maxnstates + k*tmax*maxnstates][l] = 1;
+		idpiall[j + i*maxnstates + k*tmax*maxnstates] += pow(2,n-l-1);
+	      }else{
+		piall[j + i*maxnstates + k*tmax*maxnstates][l] = 0;
+	      }
 	    }else{
 	      piall[j + i*maxnstates + k*tmax*maxnstates][l] = 0;
 	    }
-	  }else{
-	    piall[j + i*maxnstates + k*tmax*maxnstates][l] = 0;
 	  }
-	}
-      }//j
-    }//i
-  }//k
-  
-  int nstatestmp = 10*maxnstates*tmax;
-  int idkeep[nstatestmp];
-  for(j=0;j<nstatestmp;j++) idkeep[j] = 1;
-  for(j=0;j<10*maxnstates*tmax-1;j++){
-    for(k=j+1;k<10*maxnstates*tmax;k++){
-      if(idkeep[j]){
-	if(idpiall[j]==idpiall[k]){
-	  idkeep[k] = 0;
-	  nstatestmp--;
+	}//j
+      }//i
+    }//k
+    
+    int nstatestmp = 10*maxnstates*tmax;
+    int idkeep[nstatestmp];
+    for(j=0;j<nstatestmp;j++) idkeep[j] = 1;
+    for(j=0;j<10*maxnstates*tmax-1;j++){
+      for(k=j+1;k<10*maxnstates*tmax;k++){
+	if(idkeep[j]){
+	  if(idpiall[j]==idpiall[k]){
+	    idkeep[k] = 0;
+	    nstatestmp--;
+	  }
 	}
       }
     }
-  }
-
-  
-  /*for(k=0;k<10*maxnstates*tmax;k++){
-    printf("k=%d, idkeep=%d, idpiall=%d\t",k,idkeep[k],idpiall[k]);
-    for(l=0;l<n;l++) printf("%d\t",piall[k][l]);
-    printf("\n");
-    }*/
-
-  /*int** piall2  = malloc(nstatestmp*sizeof(int*));
-  for(k=0; k<nstatestmp;k++){
-    piall2[k] = malloc(n*sizeof(int));
-    }*/
-  
-  l=0;
-  for(j=0;j<10*maxnstates*tmax;j++){
-    if(idkeep[j]){
-      if(l!=j) piall[l] = piall[j];
-      l++;
+    
+    l=0;
+    for(j=0;j<10*maxnstates*tmax;j++){
+      if(idkeep[j]){
+	if(l!=j) piall[l] = piall[j];
+	l++;
+      }
     }
+     
+    for(j=0;j<nstatestmp;j++){
+      for(k=0;k<n;k++) printf("%d ", piall[j][k] );
+      printf("\n");
+    }
+    
+    nstates=nstatestmp;
+    printf("Number of states to compute: %d; total matrix size: %d\n",nstates,nstates*nstates);
+    
+    
+    FILE * fpi;
+    printf("Writing list of occupancy states in file piall.txt\n");
+    fpi=fopen("piall.txt","wb");  
+    for(i=0; i<nstates; i++){
+      for(j=0; j<n; j++){
+	fprintf(fpi,"%d\t", piall[i][j] ); //-Ltot) ); //do not normalize if different values of p are to be compared
+      }
+      fprintf(fpi,"\n");
+    }
+    fclose(fpi);
+  }else{
+    /*fo = fopen(fname,"rb");   //
+    int out;
+    for(i=0; i<tmax; i++){
+      for(j=0; j<n; j++){
+	out = fscanf(fo,"%d",&(Y[i][j]));
+      }
+    }
+    fclose(fo);*/
+
+    
+    //read states data
+    FILE * fst;
+    printf("Reading observations from file %s... ",fstname);
+    fst = fopen(fstname,"rb");   //
+    while ( (c=fgetc(fst)) != EOF ) {
+      if ( c == '\n' )
+	nstates++;
+    }
+    fclose(fst);
+    printf("nstates=%d\n",nstates);
+    piall  = malloc(nstates*sizeof(int*));
+    for(i=0; i<nstates; i++) piall[i] = malloc(n*sizeof(int));
+
+    fst = fopen(fstname,"rb");  
+    for(i=0; i<nstates; i++){
+      for(j=0; j<n; j++){
+	out = fscanf(fst,"%d",&(piall[i][j]));
+      }
+    }
+    fclose(fst);
+
+    
+    for(i=0; i<nstates; i++){
+      for(j=0; j<n; j++){
+	printf("%d\t",piall[i][j]);
+      }
+      printf("\n");
+    }
+    
   }
-  
-  //for(j=0;j<tmax*maxnstates;j++) free(piall[j]);
-  //for(j=0;j<10*tmax*maxnstates;j++) free(piall[j]);
-  //free(piall);
-  //piall = piall2;
-  
-  //memcpy(&Pold[0], &Ptmp[0], sizeof(double)*nstates);
-  
-  for(j=0;j<nstatestmp;j++){
-    for(k=0;k<n;k++) printf("%d ", piall[j][k] );
-    printf("\n");
-  }
-  
-   
-  nstates=nstatestmp;
-  printf("Number of states to compute: %d; total matrix size: %d\n",nstates,nstates*nstates);
   
   //number of possible states at each time step
   //int npstates[tmax]; 
@@ -757,16 +789,13 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   for(i=0; i<tmax; i++){
     free(J[i]);
     free(Y[i]);
-    free(prmin[i]);
   }
   //for(k=0; k<nstatestmp;k++) free(piall[k]);
   //for(k=0; k<10*tmax*maxnstates;k++) free(piall[k]);
   free(piall);
   free(J);
   free(Y);
-  free(D);
-  free(prmin); 
-  
+  free(D);  
   
   return 0;
 }
