@@ -368,7 +368,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 	//initial value
 	j=0;
 	int jt=0;
-	for(int jt=0; jt<nstepd; jt++){//nstep; ie++){
+	for(jt=0; jt<nstepd; jt++){//nstep; ie++){
 	if(jt%thind==0){
 	  printf("d[%d]=%lf, j=%d\t",jt,dllik[jt],j);
 	    double dtmp = dllik[jt];
