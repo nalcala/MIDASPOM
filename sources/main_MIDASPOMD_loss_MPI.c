@@ -374,7 +374,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     for(id=0; id<nstepd; id++){//nstep; ie++){
       dtmp = dllik[id];
       LLtmp = 0;
-      for(j=0; j<n; j++) M[n][j]=exp( -a*(j+1)*dtmp ); // distance to source
+      for(j=0; j<n; j++) M[n][j]=exp( -a*(j*d + dtmp) ); // distance to source
       
       for(i=0;i<nstates;i++){
 	for(j=0;j<nstates;j++){

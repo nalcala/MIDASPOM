@@ -307,7 +307,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   if(!readpi){
     int thin = 10;
     int tmax = tdis+ts;
-    nstates = 2*(nstep/thin+1)*tmax+1;
+    nstates = 1;
+    int kt;
+    for(kt=0;kt<nstep;kt++){// for all values, simulate 2X maxnstates/time point
+      if((kt%thin==0)&&(Kllik[kt]>=1) )  nstates += 2*tmax;
+    }
+    //nstates = 2*(nstep/thin+1)*tmax+1;
     printf("nstates=%d\n",nstates);
     piall = malloc((nstates+1)*sizeof(int*));
     for(i=0; i<nstates; i++){
@@ -325,10 +330,9 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     //SIMULATE STATES
     k=0;
     double pp;
-    int kt;
     for(kt=0;kt<nstep;kt++){// for all values, simulate 2X maxnstates/time point
-      if(kt%thin==0){
-	printf("kt=%d, k=%d\t",kt,k);
+      if((kt%thin==0)&&(Kllik[kt]>=1) ){
+	printf("K[%d]=%lf, k=%d\t",kt,Kllik[kt],k);
 	//initial value
 	for(l=0; l<n; l++){
 	  pp = (double)rand()/(double)(RAND_MAX);
@@ -398,10 +402,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
       }
     }
      
-    for(j=0;j<nstatestmp;j++){
+    /*for(j=0;j<nstatestmp;j++){
       for(k=0;k<n;k++) printf("%d ", piall[j][k] );
       printf("\n");
-    }
+      }*/
     
     nstates=nstatestmp;
     printf("Number of states to compute: %d; total matrix size: %d\n",nstates,nstates*nstates);
@@ -442,12 +446,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     fclose(fst);
     
     
-    for(i=0; i<nstates; i++){
+    /*for(i=0; i<nstates; i++){
       for(j=0; j<n; j++){
 	printf("%d\t",piall[i][j]);
       }
       printf("\n");
-    }
+      }*/
   }
   
   

@@ -370,12 +370,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 	j=0;
 	int jt=0;
 	for(jt=0; jt<nstepd; jt++){//nstep; ie++){
-	if(jt%thind==0){
-	  printf("d[%d]=%lf, j=%d\t",jt,dllik[jt],j);
+	  if(jt%thind==0){
+	    printf("d[%d]=%lf, j=%d\t",jt,dllik[jt],j);
 	    double dtmp = dllik[jt];
-
+	    
 	    for(l=0; l<n; l++){
-	      M[n][l]=exp( -a*(l+1)*dtmp ); // distance to source
+	      M[n][l]=exp( -a*(l*d + dtmp) ); // distance to source
 	      pp = (double)rand()/(double)(RAND_MAX);
 	      if(pp>0.5){
 		piall[k*tmax*2][l] = 1;
@@ -449,10 +449,10 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
       }
     }
      
-    for(j=0;j<nstatestmp;j++){
+    /*for(j=0;j<nstatestmp;j++){
       for(k=0;k<n;k++) printf("%d ", piall[j][k] );
       printf(": %d\n",idpiall[j]);
-    }
+      }*/
     
     nstates=nstatestmp;
     printf("Number of states to compute: %d; total matrix size: %d\n",nstates,nstates*nstates);
@@ -493,12 +493,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     fclose(fst);
     
     
-    for(i=0; i<nstates; i++){
+    /*for(i=0; i<nstates; i++){
       for(j=0; j<n; j++){
 	printf("%d\t",piall[i][j]);
       }
       printf("\n");
-    }
+      }*/
   }
   
   
@@ -595,7 +595,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     for(id=0; id<nstepd; id++){//nstep; ie++){
       dtmp = dllik[id];
       LLtmp = 0;
-      for(j=0; j<n; j++) M[n][j]=exp( -a*(j+1)*dtmp ); // distance to source
+      for(j=0; j<n; j++) M[n][j]=exp( -a*(j*d + dtmp) ); // distance to source
       
       for(i=0;i<nstates;i++){
 	for(j=0;j<nstates;j++){
