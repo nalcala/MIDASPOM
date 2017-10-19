@@ -325,7 +325,8 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     //SIMULATE STATES
     k=0;
     double pp;
-    for(int kt=0;kt<nstep;kt++){// for all values, simulate 2X maxnstates/time point
+    int kt;
+    for(kt=0;kt<nstep;kt++){// for all values, simulate 2X maxnstates/time point
       if(kt%thin==0){
 	printf("kt=%d, k=%d\t",kt,k);
 	//initial value
