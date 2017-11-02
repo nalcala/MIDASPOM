@@ -200,6 +200,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   char* fout  = "lh_loss.txt";
   char* fstname = "piall.txt";
   int readpi = 0;
+  double C = 100;
  
   int i,j,k,l;
   unsigned int index;
@@ -345,7 +346,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   int** piall;
   if(!readpi){
     printf("Compute states\n");
-    int thin = 10;
+    int thin = 1;
     int thind= 1;
     int tmax = tdis+ts;
     nstates = 2*(nstep/thin+1)*(nstepd/thind+1)*tmax+tmax+1;
@@ -371,11 +372,12 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 	int jt=0;
 	for(jt=0; jt<nstepd; jt++){//nstep; ie++){
 	  if(jt%thind==0){
-	    printf("d[%d]=%lf, j=%d\t",jt,dllik[jt],j);
+	    printf("d[%d]=%lf, j=%d\n",jt,dllik[jt],j);
 	    double dtmp = dllik[jt];
 	    
 	    for(l=0; l<n; l++){
 	      M[n][l]=exp( -a*(l*d + dtmp) ); // distance to source
+	      //printf("M[%d][%d]=%lf\t",n,l,M[n][l]);
 	      pp = (double)rand()/(double)(RAND_MAX);
 	      if(pp>0.5){
 		piall[k*tmax*2][l] = 1;
@@ -384,6 +386,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 		piall[k*tmax*2][l] = 0;
 	      }
 	    }
+	    //printf("\n");
 	    for(j=0; j<ts; j++){
 	      idpiall[2*k*tmax+2*j+1] = 0;
 	      idpiall[2*k*tmax+2*j+2] = 0;
@@ -525,6 +528,14 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     }//for state k
   }//for patch j
 
+  for(k=0; k<nstates; k++){
+    for(j=0; j<n; j++){
+      printf("%d\t", piall[k][j]);
+    }
+    printf(": %lf\n",priorst[k]);
+  }
+
+  
   free(pendp);
     
  
@@ -577,7 +588,7 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   }else{
     
   }
-  cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, 1.0, Pe, nstates, Pc, nstates, 0, P, nstates);
+  cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, C, Pe, nstates, Pc, nstates, 0, P, nstates);
 
   // load P
   
@@ -591,11 +602,16 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   double Ktmp,dtmp;
   for(iK=stloop; iK<endloop; iK++){//nstep; ie++){
     Ktmp = Kllik[iK];
-    //printf("iK=%d\n",iK);
+    printf("K[%d]=%lf:\t",iK,Ktmp);
     for(id=0; id<nstepd; id++){//nstep; ie++){
       dtmp = dllik[id];
+      printf("d[%d]=%lf\t",id,dtmp);
       LLtmp = 0;
-      for(j=0; j<n; j++) M[n][j]=exp( -a*(j*d + dtmp) ); // distance to source
+      for(j=0; j<n; j++){
+	M[n][j]=exp( -a*(j*d + dtmp) ); // distance to source
+	//printf("M[%d][%d]=%lf\t",n,j,M[n][j]);
+      }
+      //printf("\n");
       
       for(i=0;i<nstates;i++){
 	for(j=0;j<nstates;j++){
@@ -603,22 +619,34 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
 	  PKc[i*nstates + j] = pijcsource(piall[i],piall[j],cB,Ktmp,M,n);
 	}
       }
-      double sumPKe=0,sumPKc=0,sumPK=0,sumPKpow=0;
+      double sumPKc=0,sumPK=0,sumPKpow=0,sumPtotpow=0;
       
-      cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, 1.0, Pe, nstates, PKc, nstates, 0, PK, nstates);
+      cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, C, Pe, nstates, PKc, nstates, 0, PK, nstates);
 
+      
       //load PK
-      
       matpow(PK,nstates,ts,PKpow);
-      cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, 1.0, PKpow, nstates, Ppow, nstates, 0, Ptotpow, nstates);
-      
+      cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans, nstates, nstates, nstates, C, PKpow, nstates, Ppow, nstates, 0, Ptotpow, nstates);
+
       for(i=0;i<nstates;i++){
-	for(j=0; j<nstates; j++){
-	  LLtmp += Ptotpow[i*nstates + j]*priorst[j];
+	for(j=0;j<nstates;j++){
+	  sumPKc += PKc[i*nstates + j];
+	  sumPK += PK[i*nstates + j];
+	  sumPKpow += PKpow[i*nstates + j];
+	  sumPtotpow += Ptotpow[i*nstates + j];
 	}
       }
+      
+      
+      for(i=0;i<nstates;i++){
+	//for(j=0; j<nstates; j++){
+	LLtmp += Ptotpow[i*nstates + nstates-1];//*priorst[j];
+	  //}
+      }
       Lik[iK][id] = LLtmp;
+      printf("LLik[%d][%d]=%lf (SKc=%lf, SK=%lf, SKpow=%lf, Stotpow=%lf), \n",iK,id,log(LLtmp),sumPKc,sumPK,sumPKpow,sumPtotpow );
     }
+    //printf("\n");
   }
 
   //free memory

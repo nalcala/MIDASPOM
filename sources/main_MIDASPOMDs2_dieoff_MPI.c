@@ -533,7 +533,6 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
   double Ktmp;
   for(iK=stloop; iK<endloop; iK++){//nstep; ie++){
     Ktmp = Kllik[iK];
-    //printf("iK=%d\n",iK);
     LLtmp = 0;
     for(i=0;i<nstates;i++){
       for(j=0;j<nstates;j++){
@@ -558,9 +557,11 @@ int main(int argc, char ** argv)//takes the path to an input file as argument
     for(i=0;i<nstates;i++){
       for(j=0; j<nstates; j++){
 	LLtmp += Ptotpow[i*nstates + j]*priorst[j];
+	//printf("LLtmp=%lf\n",(LLtmp));
       }
     }
     Lik[iK] = LLtmp;
+    printf("Lik[%d]=%lf\n",iK,LLtmp);
   }
 
   //free memory
